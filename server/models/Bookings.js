@@ -18,8 +18,8 @@ const bookingSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['unpaid', 'paid'],
-        default: 'unpaid'
+        enum: ['not_paid', 'paid'],
+        default: 'not_paid'
     },
     amount: {
         type: Number,
@@ -29,3 +29,4 @@ const bookingSchema = new mongoose.Schema({
 }, { timestamps: true }); 
 
 module.exports = mongoose.model('Booking', bookingSchema);
+
