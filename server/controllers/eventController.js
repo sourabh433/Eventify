@@ -9,7 +9,8 @@ exports.getAllEvents = async (req, res) => {
     if (req.query.location) filters.location = req.query.location;
     if (req.query.ticketPrice) filters.ticketPrice = req.query.ticketPrice;
 
-    const events = await Event.find(filters);
+      const events = await Event.find(filters);
+    // const events = await Event.find(filters).populate("createdBy", "name email");
 
     res.json(events);
   } catch (error) {
@@ -21,6 +22,11 @@ exports.getAllEvents = async (req, res) => {
 exports.getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
+
+//     const event = await Event.findById(req.params.id).populate(
+//   "createdBy",
+//   "name email"
+// );
 
     if (!event) {
       return res.status(404).json({ error: "Event not found" });
@@ -71,10 +77,13 @@ exports.createEvent = async (req, res) => {
       availableSeats: totalSeats, // ✅ IMPORTANT FIX
       ticketPrice,
       imageUrl, // ✅ FIXED (was image)
+      
+      
     });
 
     res.status(201).json(event);
   } catch (error) {
+     
     res.status(500).json({ error: error.message });
   }
 };

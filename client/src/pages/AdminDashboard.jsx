@@ -2,8 +2,10 @@ import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import api from "../utils/axios";
 import { useNavigate } from "react-router-dom";
+import { card, sectionCard, button } from "../utils/ui";
 
 const AdminDashboard = () => {
+
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
@@ -22,7 +24,7 @@ const AdminDashboard = () => {
     imageUrl: "",
   });
 
-  
+
 
   useEffect(() => {
     if (!user || user.role !== "admin") {
@@ -47,7 +49,7 @@ const AdminDashboard = () => {
     }
   };
 
-   // ✅ FIXED CREATE EVENT
+  // ✅ FIXED CREATE EVENT
   const handleCreateEvent = async (e) => {
     e.preventDefault();
 
@@ -83,6 +85,7 @@ const AdminDashboard = () => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       try {
         await api.delete(`/events/${id}`);
+
         fetchData();
       } catch (error) {
         alert("Error deleting event");
@@ -110,12 +113,60 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading)
+  const StatsSkeleton = () => {
     return (
-      <div className="text-center py-20 text-xl font-semibold">
-        Loading admin panel...
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-24 bg-gray-200 rounded-2xl"
+          ></div>
+        ))}
       </div>
     );
+
+
+    const SkeletonCard = () => {
+      return (
+        <div className="bg-white p-4 rounded-xl shadow-sm border animate-pulse">
+          <div className="w-full h-32 bg-gray-200 rounded-lg mb-3"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      );
+    };
+  };
+
+  if (loading)
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+
+        {/* Title skeleton */}
+        <div className="h-8 bg-gray-200 rounded w-1/3 mb-6 animate-pulse"></div>
+
+        {/* Stats */}
+        <StatsSkeleton />
+
+        {/* Event skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-40 bg-gray-200 rounded-xl animate-pulse"
+            ></div>
+          ))}
+        </div>
+      </div>
+    );
+
+
+
+
+  const pendingBookings = bookings.filter(b => b.status === "pending");
+  const confirmedBookings = bookings.filter(b => b.status === "confirmed");
+  const cancelledBookings = bookings.filter(b => b.status === "cancelled");
+
+
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -138,7 +189,7 @@ const AdminDashboard = () => {
 
       {/* Admin Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between bg-gradient-to-r from-green-200 to-gray-200">
           <div>
             <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">
               Total Revenue
@@ -158,12 +209,12 @@ const AdminDashboard = () => {
             ₹
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-200 to-green-200">
           <div>
             <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">
               Paid Clients
             </p>
-            <h3 className="text-3xl font-black text-blue-600">
+            <h3 className="text-3xl font-black text-blue-500">
               {
                 new Set(
                   bookings
@@ -180,7 +231,7 @@ const AdminDashboard = () => {
             👤
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between bg-gradient-to-r from-yellow-100 to-gray-200">
           <div>
             <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">
               Pending Requests
@@ -298,14 +349,18 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Events Section */}
         <div className="flex flex-col">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 text-sm">
+
+          <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-blue-200 to-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">
+              All Events
+            </h2>
+
+            <span className="bg-white border text-gray-700 px-3 py-1 rounded-full text-sm font-semibold shadow-sm">
               {events.length}
             </span>
-            All Events
-          </h2>
+          </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+            <ul className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
               {events.length === 0 ? (
                 <li className="p-6 text-gray-500 text-center">
                   No events created yet.
@@ -335,7 +390,7 @@ const AdminDashboard = () => {
                     </div>
                     <button
                       onClick={() => handleDeleteEvent(event._id)}
-                      className="w-full sm:w-auto text-red-500 hover:text-white hover:bg-red-500 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm shrink-0"
+                     className={button("danger")}
                     >
                       Delete
                     </button>
@@ -344,128 +399,151 @@ const AdminDashboard = () => {
               )}
             </ul>
           </div>
+
+          {/* Cancelled */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-red-100 to-gray-200">
+              <h2 className="text-lg font-semibold text-red-600">
+                ❌ Rejected Bookings
+              </h2>
+              <div className="mt-4"></div>
+
+              <span className="text-sm bg-red-100 text-red-600 px-3 py-1 rounded-full font-semibold">
+                {cancelledBookings.length}
+              </span>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border max-h-[400px] overflow-y-auto">
+              {cancelledBookings.length === 0 ? (
+                <p className="p-4 text-gray-500 text-center">No rejected bookings</p>
+              ) : (
+                cancelledBookings.map((booking) => (
+                  <div key={booking._id} className="p-4 border-b last:border-0">
+                    <p className="font-bold">{booking.eventId?.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {booking.userId?.name}
+                    </p>
+                    <p className="text-sm text-red-500  font-semibold">
+                      Rejected
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Bookings Section */}
-        <div className="flex flex-col">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 text-sm font-bold">
-              {bookings.length}
-            </span>
-            Booking Requests
-          </h2>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-              {bookings.length === 0 ? (
-                <li className="p-6 text-gray-500 text-center">
-                  No bookings yet.
-                </li>
-              ) : (
-                bookings.map((booking) => (
-                  <li
-                    key={booking._id}
-                    className={`p-6 hover:bg-gray-50 transition border-l-4 ${booking.status === "pending" ? "border-l-yellow-400" : booking.status === "confirmed" ? "border-l-green-400" : "border-l-red-400"}`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="font-bold text-gray-900 text-lg leading-tight">
-                        {booking.eventId?.title || "Deleted Event"}
-                      </h4>
-                      <div className="flex flex-col gap-1 items-end shrink-0 ml-4">
-                        <span
-                          className={`px-2 py-1 text-[10px] font-black rounded uppercase tracking-wider ${booking.status === "confirmed" ? "bg-green-100 text-green-700" : booking.status === "cancelled" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}
-                        >
-                          {booking.status}
-                        </span>
-                        {booking.status !== "cancelled" && (
-                          <span
-                            className={`px-2 py-1 text-[10px] font-black rounded uppercase tracking-wider ${booking.paymentStatus === "paid" ? "bg-indigo-100 text-indigo-700" : "bg-gray-200 text-gray-800"}`}
-                          >
-                            {booking.paymentStatus.replace("_", " ")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 mb-3 border border-gray-100 text-sm">
-                      <p className="text-gray-700 flex items-center gap-2 mb-1">
-                        <span className="font-bold w-16 text-gray-500 uppercase text-xs">
-                          User:
-                        </span>
-                        <span className="font-semibold">
-                          {booking.userId?.name}
-                        </span>
-                        <span className="text-gray-400">
-                          ({booking.userId?.email})
-                        </span>
-                      </p>
-                      <p className="text-gray-700 flex items-center gap-2 mb-1">
-                        <span className="font-bold w-16 text-gray-500 uppercase text-xs">
-                          Amount:
-                        </span>
-                        <span
-                          className={`font-semibold ${booking.amount === 0 ? "text-green-600" : ""}`}
-                        >
-                          {booking.amount === 0 ? "Free" : `₹${booking.amount}`}
-                        </span>
-                      </p>
-                      <p className="text-gray-700 flex items-center gap-2 mb-1">
-                        <span className="font-bold w-16 text-gray-500 uppercase text-xs">
-                          Date:
-                        </span>
-                        <span>
-                          {new Date(booking.bookedAt).toLocaleString()}
-                        </span>
-                      </p>
-                      {booking.eventId && (
-                        <p className="text-gray-700 flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
-                          <span className="font-bold w-16 text-gray-500 uppercase text-xs">
-                            Seats:
-                          </span>
-                          <span
-                            className={`font-bold ${booking.eventId.availableSeats > 0 ? "text-green-600" : "text-red-500"}`}
-                          >
-                            {booking.eventId.availableSeats}
-                          </span>{" "}
-                          remaining of {booking.eventId.totalSeats}
-                        </p>
-                      )}
-                    </div>
+        {/* Bookings Section */}
+        <div className="flex flex-col gap-6">
 
-                    {/* Action buttons for admin */}
-                    {booking.status === "pending" && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <button
-                          onClick={() =>
-                            handleConfirmBooking(booking._id, "paid")
-                          }
-                          className="flex-1 min-w-[120px] bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition"
-                        >
-                          ✓ Approve as Paid
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleConfirmBooking(booking._id, "not_paid")
-                          }
-                          className="flex-1 min-w-[120px] bg-gray-50 text-gray-700 hover:bg-gray-800 hover:text-white border border-gray-200 text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition"
-                        >
-                          ✓ Approve Undecided
-                        </button>
-                        <button
-                          onClick={() => handleCancelBooking(booking._id)}
-                          className="w-[80px] bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 text-xs font-bold py-2.5 px-3 rounded-lg transition"
-                        >
-                          ✕ Reject
-                        </button>
-                      </div>
-                    )}
-                  </li>
+          {/* Pending */}
+          <div className="">
+            <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-yellow-100 to-gray-200">
+              <h2 className="text-lg font-semibold text-amber-600">
+                ⏳ Pending Requests
+              </h2>
+              <div className="mt-4"></div>
+
+              <span className="text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-semibold">
+                {pendingBookings.length}
+              </span>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border max-h-[400px] overflow-y-auto">
+              {pendingBookings.length === 0 ? (
+                <p className="p-4 text-gray-500 text-center">No pending bookings</p>
+              ) : (
+                pendingBookings.map((booking) => (
+                  <div key={booking._id} className="p-4 border-b last:border-0">
+                    <p className="font-bold">{booking.eventId?.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {booking.userId?.name} ({booking.userId?.email})
+                    </p>
+
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleConfirmBooking(booking._id, "paid")}
+                       className={button("success")}
+                      >
+                        Approve Paid
+                      </button>
+                      <button
+                        onClick={() => handleConfirmBooking(booking._id, "not_paid")}
+                        className={button("success")}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleCancelBooking(booking._id)}
+                       className={button("danger")}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
                 ))
               )}
-            </ul>
+            </div>
           </div>
+
+          {/* Confirmed Bookings Section */}
+          <div>
+            <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-green-100 to-gray-200" >
+              <h2 className="text-lg font-semibold text-emerald-700">
+                ✅ Confirmed Bookings
+              </h2>
+              <div className="mt-4"></div>
+
+              <span className="text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold">
+                {confirmedBookings.length}
+              </span>
+            </div>
+
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              {confirmedBookings.length === 0 && (
+                <p className="text-gray-500 text-sm">No confirmed bookings</p>
+              )}
+
+              {confirmedBookings.map((booking) => (
+               <div
+  key={booking._id}
+  className={card()}
+>
+                  <p className="font-semibold">{booking.eventId?.title}</p>
+                  <p className="text-sm text-gray-500">
+                    {booking.userId?.name}
+                  </p>
+
+                  {/* LEFT: Paid | RIGHT: Delete */}
+                  <div className="flex justify-between items-center mt-3">
+                    <span
+                      className={`text-sm font-semibold ${booking.paymentStatus === "paid"
+                        ? "text-green-600"
+                        : "text-gray-500"
+                        }`}
+                    >
+                      {booking.paymentStatus === "paid" ? "💰 Paid" : "Unpaid"}
+                    </span>
+
+                    <button
+                      className="text-red-500 hover:text-red-700 text-sm font-semibold"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+
+
         </div>
       </div>
     </div>
   );
 };
+
 
 export default AdminDashboard;

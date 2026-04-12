@@ -18,4 +18,8 @@ const { createEvent, getAllEvents, getEventById, updateEvent, deleteEvent } = re
  //delete event (admin only)
  router.delete('/:id', protect, admin, deleteEvent);
 
+ router.put("/events/:id/delete", async (req, res) => {
+   
+});
+
 module.exports = router;
