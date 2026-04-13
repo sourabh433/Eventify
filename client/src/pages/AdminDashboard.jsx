@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
-import api from "../utils/axios";
-import { useNavigate } from "react-router-dom";
-import { card, sectionCard, button } from "../utils/ui";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { UserDashboardSkeleton } from "../components/skeletons/Skeletons";
 
 const AdminDashboard = () => {
-
-  const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const [events, setEvents] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [activeTab, setActiveTab] = useState("pending");
   const [loading, setLoading] = useState(true);
 
-  const [showEventForm, setShowEventForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -24,526 +21,488 @@ const AdminDashboard = () => {
     imageUrl: "",
   });
 
+  const token = localStorage.getItem("token");
+  const config = { headers: { Authorization: `Bearer ${token}` } };
 
-
-  useEffect(() => {
-    if (!user || user.role !== "admin") {
-      navigate("/login");
-      return;
-    }
-    fetchData();
-  }, [user, navigate]);
+  const stats = {
+    totalEvents: events.length,
+    pendingBookings: bookings.filter((b) => b.status === "pending").length,
+    confirmedBookings: bookings.filter((b) => b.status === "confirmed").length,
+    cancelledBookings: bookings.filter((b) => b.status === "cancelled").length,
+    totalRevenue: bookings
+      .filter((b) => b.status === "confirmed")
+      .reduce((acc, curr) => acc + (curr.eventId?.ticketPrice || 0), 0),
+  };
 
   const fetchData = async () => {
     try {
-      const [eventsRes, bookingsRes] = await Promise.all([
-        api.get("/events"),
-        api.get("/bookings"), // Admin gets all bookings
+      setLoading(true);
+      const [bookingRes, eventRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/bookings", config),
+        axios.get("http://localhost:5000/api/events"),
       ]);
-      setEvents(eventsRes.data);
-      setBookings(bookingsRes.data);
+      setBookings(bookingRes.data);
+      setEvents(eventRes.data);
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching admin data", error);
-    } finally {
+      console.error("Data Fetch Error:", error);
       setLoading(false);
     }
   };
 
-  // ✅ FIXED CREATE EVENT
-  const handleCreateEvent = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    fetchData();
+  }, []);
 
+  const handleFormSubmit = async (e) => {
+    if (e) e.preventDefault();
     try {
-      await api.post("/events", {
-        ...formData,
-        totalSeats: Number(formData.totalSeats),
-        ticketPrice: Number(formData.ticketPrice),
-      });
-
-      setShowEventForm(false);
-
-      // ✅ RESET FIXED
-      setFormData({
-        title: "",
-        description: "",
-        date: "",
-        location: "",
-        category: "",
-        totalSeats: "",
-        ticketPrice: "",
-        imageUrl: "",
-      });
-
+      if (editingEvent) {
+        await axios.put(
+          `http://localhost:5000/api/events/${editingEvent}`,
+          formData,
+          config
+        );
+      } else {
+        await axios.post("http://localhost:5000/api/events", formData, config);
+      }
+      setShowModal(false);
       fetchData();
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.error || "Error creating event");
+    } catch (err) {
+      alert(err.response?.data?.error || "Operation failed");
     }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
+      handleFormSubmit(e);
+    }
+  };
+
+  const openCreateModal = () => {
+    setEditingEvent(null);
+    setFormData({
+      title: "",
+      description: "",
+      date: "",
+      location: "",
+      category: "",
+      totalSeats: "",
+      ticketPrice: "",
+      imageUrl: "",
+    });
+    setShowModal(true);
+  };
+
+  const openEditModal = (event) => {
+    setEditingEvent(event._id);
+    setFormData({
+      title: event.title,
+      description: event.description,
+      date: event.date.split("T")[0],
+      location: event.location,
+      category: event.category,
+      totalSeats: event.totalSeats,
+      ticketPrice: event.ticketPrice,
+      imageUrl: event.imageUrl,
+    });
+    setShowModal(true);
   };
 
   const handleDeleteEvent = async (id) => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      try {
-        await api.delete(`/events/${id}`);
-
-        fetchData();
-      } catch (error) {
-        alert("Error deleting event");
-      }
-    }
-  };
-
-  const handleConfirmBooking = async (id, paymentStatus) => {
+    if (!window.confirm("Are you sure?")) return;
     try {
-      await api.put(`/bookings/${id}/confirm`, { paymentStatus });
-      fetchData();
-    } catch (error) {
-      alert(error.response?.data?.message || "Error confirming booking");
+      await axios.delete(`http://localhost:5000/api/events/${id}`, config);
+      setEvents((prev) => prev.filter((e) => e._id !== id));
+    } catch (err) {
+      alert("Delete failed");
     }
   };
 
-  const handleCancelBooking = async (id) => {
-    if (window.confirm("Cancel this user's booking request?")) {
-      try {
-        await api.delete(`/bookings/${id}`);
-        fetchData();
-      } catch (error) {
-        alert(error.response?.data?.message || "Error cancelling booking");
-      }
-    }
-  };
-
-  const StatsSkeleton = () => {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-pulse">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-24 bg-gray-200 rounded-2xl"
-          ></div>
-        ))}
-      </div>
-    );
-
-
-    const SkeletonCard = () => {
-      return (
-        <div className="bg-white p-4 rounded-xl shadow-sm border animate-pulse">
-          <div className="w-full h-32 bg-gray-200 rounded-lg mb-3"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-        </div>
+  const handleConfirm = async (id) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/bookings/${id}/confirm`,
+        { paymentStatus: "paid" },
+        config
       );
-    };
+      fetchData();
+    } catch (err) {
+      alert("Confirmation failed");
+    }
   };
 
-  if (loading)
+  const handleDeleteBooking = async (id) => {
+    if (!window.confirm("Remove this booking?")) return;
+    try {
+      await axios.delete(`http://localhost:5000/api/bookings/${id}`, config);
+      setBookings((prev) => prev.filter((b) => b._id !== id));
+    } catch (err) {
+      alert("Delete failed");
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-
-        {/* Title skeleton */}
-        <div className="h-8 bg-gray-200 rounded w-1/3 mb-6 animate-pulse"></div>
-
-        {/* Stats */}
-        <StatsSkeleton />
-
-        {/* Event skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-40 bg-gray-200 rounded-xl animate-pulse"
-            ></div>
-          ))}
-        </div>
+      <div className="min-h-screen bg-slate-50 p-3 sm:p-6 md:p-8">
+        <UserDashboardSkeleton />
       </div>
     );
+  }
 
-
-
-
-  const pendingBookings = bookings.filter(b => b.status === "pending");
-  const confirmedBookings = bookings.filter(b => b.status === "confirmed");
-  const cancelledBookings = bookings.filter(b => b.status === "cancelled");
-
-
+  const filteredBookings = bookings.filter((b) => b.status === activeTab);
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="bg-black text-white rounded-2xl p-6 sm:p-8 mb-8 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold mb-2">
-            Admin Dashboard
-          </h1>
-          <p className="text-gray-300">
-            Manage events and manually confirm bookings.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowEventForm(!showEventForm)}
-          className="w-full md:w-auto bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-100 transition shadow-md"
-        >
-          {showEventForm ? "Cancel Creation" : "+ Create New Event"}
-        </button>
-      </div>
+    <div className="min-h-screen bg-slate-50 p-3 sm:p-6 md:p-8">
+      {/* Header */}
+      <header className="max-w-7xl mx-auto relative overflow-hidden bg-gradient-to-r from-blue-700 via-blue-600 to-sky-500 rounded-3xl shadow-xl shadow-blue-200/50 p-6 md:p-10 mb-10 border border-blue-400/20">
 
-      {/* Admin Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between bg-gradient-to-r from-green-200 to-gray-200">
-          <div>
-            <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">
-              Total Revenue
-            </p>
-            <h3 className="text-3xl font-black text-green-600">
-              ₹
-              {bookings.reduce(
-                (sum, b) =>
-                  b.paymentStatus === "paid" && b.status === "confirmed"
-                    ? sum + b.amount
-                    : sum,
-                0,
-              )}
-            </h3>
-          </div>
-          <div className="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-xl font-bold">
-            ₹
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-200 to-green-200">
-          <div>
-            <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">
-              Paid Clients
-            </p>
-            <h3 className="text-3xl font-black text-blue-500">
-              {
-                new Set(
-                  bookings
-                    .filter(
-                      (b) =>
-                        b.paymentStatus === "paid" && b.status === "confirmed",
-                    )
-                    .map((b) => b.userId?._id),
-                ).size
-              }
-            </h3>
-          </div>
-          <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-xl font-bold">
-            👤
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between bg-gradient-to-r from-yellow-100 to-gray-200">
-          <div>
-            <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">
-              Pending Requests
-            </p>
-            <h3 className="text-3xl font-black text-yellow-600">
-              {bookings.filter((b) => b.status === "pending").length}
-            </h3>
-          </div>
-          <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xl font-bold">
-            ⏳
-          </div>
-        </div>
-      </div>
+        {/* Decorative blur effects */}
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-blue-400/20 rounded-full blur-2xl"></div>
 
-      {showEventForm && (
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 animation-slideDown">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">
-            Create New Event
-          </h2>
-          <form
-            onSubmit={handleCreateEvent}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
-          >
-            <input
-              required
-              type="text"
-              placeholder="Event Title"
-              className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-            />
-            <input
-              required
-              type="text"
-              placeholder="Category (e.g., Tech, Music)"
-              className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition"
-              value={formData.category}
-              onChange={(e) =>
-                setFormData({ ...formData, category: e.target.value })
-              }
-            />
-            <input
-              required
-              type="date"
-              className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition"
-              value={formData.date}
-              onChange={(e) =>
-                setFormData({ ...formData, date: e.target.value })
-              }
-            />
-            <input
-              required
-              type="text"
-              placeholder="Location"
-              className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition"
-              value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
-            />
-            <input
-              required
-              type="number"
-              placeholder="Total Seats"
-              className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition"
-              value={formData.totalSeats}
-              onChange={(e) =>
-                setFormData({ ...formData, totalSeats: e.target.value })
-              }
-            />
-            <input
-              required
-              type="number"
-              placeholder="Ticket Price (0 for free)"
-              className="border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition"
-              value={formData.ticketPrice}
-              onChange={(e) =>
-                setFormData({ ...formData, ticketPrice: e.target.value })
-              }
-            />
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 text-white">
 
-            <div className="md:col-span-2">
-              <input
-                type="text"
-                placeholder="Image URL (Provide any direct link to an image)"
-                className="w-full border px-4 py-3 rounded-lg focus:ring-2 focus:ring-gray-700 outline-none transition"
-                value={formData.imageUrl}
-                onChange={(e) =>
-                  setFormData({ ...formData, imageUrl: e.target.value })
-                }
-              />
+          {/* Left Content */}
+          <div>
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight">
+              Admin Control Panel
+            </h1>
+            <p className="text-blue-100 font-medium text-sm mt-1">
+              Real-time platform analytics
+            </p>
+
+            {/* Status badge */}
+            <div className="flex items-center gap-3 mt-3">
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-bold border border-white/20 uppercase tracking-widest">
+                Admin Access
+              </span>
+              <span className="w-2 h-2 rounded-full bg-blue-300 animate-pulse"></span>
+              <span className="text-blue-100 text-xs font-medium">
+                Manage events & bookings
+              </span>
             </div>
-
-            <textarea
-              required
-              placeholder="Event Description"
-              className="border px-4 py-3 rounded-lg md:col-span-2 h-32 focus:ring-2 focus:ring-gray-700 outline-none transition"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-            />
-            <button
-              type="submit"
-              className="md:col-span-2 bg-gray-900 text-white font-bold py-3 mt-2 rounded-lg hover:bg-black transition shadow-md"
-            >
-              Publish Event
-            </button>
-          </form>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Events Section */}
-        <div className="flex flex-col">
-
-          <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-blue-200 to-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">
-              All Events
-            </h2>
-
-            <span className="bg-white border text-gray-700 px-3 py-1 rounded-full text-sm font-semibold shadow-sm">
-              {events.length}
-            </span>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <ul className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
-              {events.length === 0 ? (
-                <li className="p-6 text-gray-500 text-center">
-                  No events created yet.
-                </li>
-              ) : (
-                events.map((event) => (
-                  <li
-                    key={event._id}
-                    className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gray-50 transition border-b border-gray-100 last:border-0"
-                  >
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-1 leading-tight">
-                        {event.title}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                        <span className="flex items-center gap-1 font-medium">
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>{" "}
-                          {new Date(event.date).toLocaleDateString()}
-                        </span>
-                        <span className="flex items-center gap-1 font-medium">
-                          <div
-                            className={`w-2 h-2 rounded-full ${event.availableSeats > 0 ? "bg-green-500" : "bg-red-500"}`}
-                          ></div>{" "}
-                          {event.availableSeats}/{event.totalSeats} seats
-                        </span>
-                      </div>
-                    </div>
+
+          {/* Right Button */}
+          {activeTab === "events" && (
+            <button
+              onClick={openCreateModal}
+              className="w-full sm:w-auto bg-white text-blue-700 px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition"
+            >
+              + Create Event
+            </button>
+          )}
+
+        </div>
+      </header>
+
+      {/* Stats Grid */}
+      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+        {[
+          { label: "Events", val: stats.totalEvents, color: "text-blue-600" },
+          {
+            label: "Revenue",
+            val: `₹${stats.totalRevenue}`,
+            color: "text-emerald-600",
+          },
+          {
+            label: "Pending",
+            val: stats.pendingBookings,
+            color: "text-amber-500",
+          },
+          {
+            label: "Confirmed",
+            val: stats.confirmedBookings,
+            color: "text-green-500",
+          },
+          {
+            label: "Cancelled",
+            val: stats.cancelledBookings,
+            color: "text-red-500",
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"
+          >
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">
+              {stat.label}
+            </p>
+            <h2 className={`text-xl sm:text-2xl font-black ${stat.color}`}>
+              {stat.val}
+            </h2>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div className="max-w-7xl mx-auto mb-6 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+        {["pending", "confirmed", "cancelled", "events"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-lg font-bold capitalize whitespace-nowrap text-sm transition-all ${activeTab === tab
+              ? "bg-blue-600 text-white"
+              : "bg-white text-slate-500 border"
+              }`}
+          >
+            {tab}
+
+            <span className="ml-1 opacity-60">
+              (
+              {tab === "events"
+                ? events?.length || 0   // ✅ direct safe value
+                : stats?.[`${tab}Bookings`] || 0}
+              )
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto">
+        {activeTab === "events" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map((event) => (
+              <div
+                key={event._id}
+                className="bg-white rounded-xl overflow-hidden border shadow-sm"
+              >
+                <img
+                  src={event.imageUrl}
+                  className="h-40 w-full object-cover"
+                  alt=""
+                />
+                <div className="p-4">
+                  <h3 className="font-bold text-blue-900 truncate">
+                    {event.title}
+                  </h3>
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => openEditModal(event)}
+                      className="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg text-xs font-bold"
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() => handleDeleteEvent(event._id)}
-                     className={button("danger")}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-
-          {/* Cancelled */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-red-100 to-gray-200">
-              <h2 className="text-lg font-semibold text-red-600">
-                ❌ Rejected Bookings
-              </h2>
-              <div className="mt-4"></div>
-
-              <span className="text-sm bg-red-100 text-red-600 px-3 py-1 rounded-full font-semibold">
-                {cancelledBookings.length}
-              </span>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border max-h-[400px] overflow-y-auto">
-              {cancelledBookings.length === 0 ? (
-                <p className="p-4 text-gray-500 text-center">No rejected bookings</p>
-              ) : (
-                cancelledBookings.map((booking) => (
-                  <div key={booking._id} className="p-4 border-b last:border-0">
-                    <p className="font-bold">{booking.eventId?.title}</p>
-                    <p className="text-sm text-gray-600">
-                      {booking.userId?.name}
-                    </p>
-                    <p className="text-sm text-red-500  font-semibold">
-                      Rejected
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Bookings Section */}
-        {/* Bookings Section */}
-        <div className="flex flex-col gap-6">
-
-          {/* Pending */}
-          <div className="">
-            <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-yellow-100 to-gray-200">
-              <h2 className="text-lg font-semibold text-amber-600">
-                ⏳ Pending Requests
-              </h2>
-              <div className="mt-4"></div>
-
-              <span className="text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-semibold">
-                {pendingBookings.length}
-              </span>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border max-h-[400px] overflow-y-auto">
-              {pendingBookings.length === 0 ? (
-                <p className="p-4 text-gray-500 text-center">No pending bookings</p>
-              ) : (
-                pendingBookings.map((booking) => (
-                  <div key={booking._id} className="p-4 border-b last:border-0">
-                    <p className="font-bold">{booking.eventId?.title}</p>
-                    <p className="text-sm text-gray-600">
-                      {booking.userId?.name} ({booking.userId?.email})
-                    </p>
-
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => handleConfirmBooking(booking._id, "paid")}
-                       className={button("success")}
-                      >
-                        Approve Paid
-                      </button>
-                      <button
-                        onClick={() => handleConfirmBooking(booking._id, "not_paid")}
-                        className={button("success")}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleCancelBooking(booking._id)}
-                       className={button("danger")}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Confirmed Bookings Section */}
-          <div>
-            <div className="flex items-center justify-between rounded-2xl px-5 py-4 shadow-sm border bg-gradient-to-r from-green-100 to-gray-200" >
-              <h2 className="text-lg font-semibold text-emerald-700">
-                ✅ Confirmed Bookings
-              </h2>
-              <div className="mt-4"></div>
-
-              <span className="text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold">
-                {confirmedBookings.length}
-              </span>
-            </div>
-
-            <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              {confirmedBookings.length === 0 && (
-                <p className="text-gray-500 text-sm">No confirmed bookings</p>
-              )}
-
-              {confirmedBookings.map((booking) => (
-               <div
-  key={booking._id}
-  className={card()}
->
-                  <p className="font-semibold">{booking.eventId?.title}</p>
-                  <p className="text-sm text-gray-500">
-                    {booking.userId?.name}
-                  </p>
-
-                  {/* LEFT: Paid | RIGHT: Delete */}
-                  <div className="flex justify-between items-center mt-3">
-                    <span
-                      className={`text-sm font-semibold ${booking.paymentStatus === "paid"
-                        ? "text-green-600"
-                        : "text-gray-500"
-                        }`}
-                    >
-                      {booking.paymentStatus === "paid" ? "💰 Paid" : "Unpaid"}
-                    </span>
-
-                    <button
-                      className="text-red-500 hover:text-red-700 text-sm font-semibold"
+                      className="flex-1 bg-red-50 text-red-500 py-2 rounded-lg text-xs font-bold"
                     >
                       Delete
                     </button>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            {/* MOBILE VIEW */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredBookings.length > 0 ? (
+                filteredBookings.map((booking) => (
+                  <div key={booking._id} className="p-4 flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {booking.userId?.name || "Unknown User"}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {booking.eventId?.title}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${activeTab === "confirmed"
+                          ? "bg-green-100 text-green-600"
+                          : activeTab === "cancelled"
+                            ? "bg-red-100 text-red-600"
+                            : "bg-amber-100 text-amber-600"
+                          }`}
+                      >
+                        {booking.status}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {activeTab === "pending" && (
+                        <button
+                          onClick={() => handleConfirm(booking._id)}
+                          className="flex-1 bg-green-500 text-white py-2 rounded-lg text-xs font-bold"
+                        >
+                          Confirm
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteBooking(booking._id)}
+                        className="flex-1 border py-2 rounded-lg text-xs font-bold text-slate-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="p-10 text-center text-slate-400">
+                  No {activeTab} bookings found.
+                </p>
+              )}
+            </div>
+
+            {/* DESKTOP VIEW */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-slate-400 text-xs uppercase border-b">
+                  <tr>
+                    <th className="p-5">User</th>
+                    <th className="p-5">Event</th>
+                    <th className="p-5">Status</th>
+                    <th className="p-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredBookings.map((booking) => (
+                    <tr key={booking._id} className="hover:bg-slate-50">
+                      <td className="p-5">
+                        <div className="font-bold text-slate-800">
+                          {booking.userId?.name}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {booking.userId?.email}
+                        </div>
+                      </td>
+                      <td className="p-5 text-slate-600">
+                        {booking.eventId?.title}
+                      </td>
+                      <td className="p-5">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100">
+                          {booking.status}
+                        </span>
+                      </td>
+                      <td className="p-5 text-right space-x-2">
+                        {activeTab === "pending" && (
+                          <button
+                            onClick={() => handleConfirm(booking._id)}
+                            className="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold"
+                          >
+                            Confirm
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteBooking(booking._id)}
+                          className="border px-4 py-2 rounded-lg text-xs font-bold text-slate-400"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-
-
-
-        </div>
+        )}
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4 z-50">
+          <div className="bg-white w-full max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-blue-600 p-4 text-white flex justify-between sticky top-0 z-10">
+              <h2 className="font-bold">
+                {editingEvent ? "Edit Event" : "Create Event"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+            <form
+              onKeyDown={handleKeyDown}
+              onSubmit={handleFormSubmit}
+              className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
+            >
+              <input
+                type="text"
+                placeholder="Title"
+                className="p-3 border rounded-xl"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                required
+              />
+              <input
+                type="text"
+                placeholder="Category"
+                className="p-3 border rounded-xl"
+                value={formData.category}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
+                required
+              />
+              <input
+                type="date"
+                className="p-3 border rounded-xl"
+                value={formData.date}
+                onChange={(e) =>
+                  setFormData({ ...formData, date: e.target.value })
+                }
+                required
+              />
+              <input
+                type="text"
+                placeholder="Location"
+                className="p-3 border rounded-xl"
+                value={formData.location}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
+                required
+              />
+              <input
+                type="number"
+                placeholder="Seats"
+                className="p-3 border rounded-xl"
+                value={formData.totalSeats}
+                onChange={(e) =>
+                  setFormData({ ...formData, totalSeats: e.target.value })
+                }
+                required
+              />
+              <input
+                type="number"
+                placeholder="Price"
+                className="p-3 border rounded-xl"
+                value={formData.ticketPrice}
+                onChange={(e) =>
+                  setFormData({ ...formData, ticketPrice: e.target.value })
+                }
+                required
+              />
+              <textarea
+                placeholder="Description"
+                className="p-3 border rounded-xl sm:col-span-2 h-24"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                required
+              />
+              <button
+                type="submit"
+                className="sm:col-span-2 bg-blue-600 text-white py-3 rounded-xl font-bold"
+              >
+                Save
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
 
 export default AdminDashboard;
