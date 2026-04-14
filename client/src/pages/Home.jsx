@@ -165,7 +165,7 @@ const Home = () => {
           playsInline
           className="absolute inset-0 w-full h-full object-cover z-0 opacity-100"
         >
-          <source src="https://www.pexels.com/download/video/35447926/" type="video/mp4" />
+          <source src="https://www.pexels.com/download/video/35447926" type="video/mp4" />
         </video>
 
         {/* GLASSY OVERLAY SHAPES */}
