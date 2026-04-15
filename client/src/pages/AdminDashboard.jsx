@@ -483,6 +483,23 @@ const AdminDashboard = () => {
                 }
                 required
               />
+              <input
+                type="text"
+                placeholder="Image URL"
+                className="p-3 border rounded-xl sm:col-span-2"
+                value={formData.imageUrl}
+                onChange={(e) =>
+                  setFormData({ ...formData, imageUrl: e.target.value })
+                }
+                required
+              />
+              {formData.imageUrl && (
+                <img
+                  src={formData.imageUrl}
+                  alt="Preview"
+                  className="sm:col-span-2 h-40 w-full object-cover rounded-xl border"
+                />
+              )}
               <textarea
                 placeholder="Description"
                 className="p-3 border rounded-xl sm:col-span-2 h-24"
