@@ -3,6 +3,7 @@ import axios from "axios";
 import { UserDashboardSkeleton } from "../components/skeletons/Skeletons";
 
 const AdminDashboard = () => {
+  const API = import.meta.env.VITE_API_URL;
   const [bookings, setBookings] = useState([]);
   const [events, setEvents] = useState([]);
   const [activeTab, setActiveTab] = useState("pending");
@@ -38,8 +39,8 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const [bookingRes, eventRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/bookings", config),
-        axios.get("http://localhost:5000/api/events"),
+        axios.get(`${API}/api/bookings`, config),
+        axios.get(`${API}/api/events`),
       ]);
       setBookings(bookingRes.data);
       setEvents(eventRes.data);
@@ -59,12 +60,12 @@ const AdminDashboard = () => {
     try {
       if (editingEvent) {
         await axios.put(
-          `http://localhost:5000/api/events/${editingEvent}`,
+          `${API}/api/events/${editingEvent}`,
           formData,
           config
         );
       } else {
-        await axios.post("http://localhost:5000/api/events", formData, config);
+        await axios.post(`${API}/api/events`, formData, config);
       }
       setShowModal(false);
       fetchData();
@@ -112,7 +113,7 @@ const AdminDashboard = () => {
   const handleDeleteEvent = async (id) => {
     if (!window.confirm("Are you sure?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/events/${id}`, config);
+      await axios.delete(`${API}/api/events/${id}`, config);
       setEvents((prev) => prev.filter((e) => e._id !== id));
     } catch (err) {
       alert("Delete failed");
@@ -122,7 +123,7 @@ const AdminDashboard = () => {
   const handleConfirm = async (id) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/bookings/${id}/confirm`,
+        `${API}/api/bookings/${id}/confirm`,
         { paymentStatus: "paid" },
         config
       );
@@ -135,7 +136,7 @@ const AdminDashboard = () => {
   const handleDeleteBooking = async (id) => {
     if (!window.confirm("Remove this booking?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/bookings/${id}`, config);
+      await axios.delete(`${API}/api/bookings/${id}`, config);
       setBookings((prev) => prev.filter((b) => b._id !== id));
     } catch (err) {
       alert("Delete failed");
