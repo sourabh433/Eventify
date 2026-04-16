@@ -122,6 +122,50 @@ npm run dev
 ---
 
 ## 📸 Screenshots
+## 📸 Screenshots
+
+### 🏠 Home Page
+
+![Home](./Screenshots/homePage.png)
+
+### 🎫 Events Page
+
+![Events](./Screenshots/EventsPage.png)
+![Events 2](./Screenshots/EventsPage2.png)
+
+### 🔐 Login & Register
+
+![Login](./Screenshots/loginPage.png)
+![Register](./Screenshots/registerPage.png)
+![OTP](./Screenshots/verifyOTPpage.png)
+
+### 👤 User Dashboard
+
+![Dashboard](./Screenshots/userDashboard.png)
+![Bookings](./Screenshots/userBookings.png)
+
+### 🛠️ Admin Dashboard
+
+![Admin](./Screenshots/adminDashboard.png)
+![Add Event](./Screenshots/addNewEvent.png)
+![Edit Event](./Screenshots/editEvent.png)
+![Events by Admin](./Screenshots/eventsByAdmin.png)
+
+### 📦 Booking Management
+
+![Booking Requests](./Screenshots/bookingRequests.png)
+![Confirmed](./Screenshots/confirmedBookings.png)
+![Cancelled](./Screenshots/canceledBooking.png)
+
+### 🎨 UI Components
+
+![Filter Modal](./Screenshots/filterModel.png)
+![Footer](./Screenshots/footer.png)
+
+### ❌ Error Page
+
+![404](./Screenshots/404NotFoundPage.png)
+
 
 
 ## 🙌 Author
@@ -134,3 +178,4 @@ npm run dev
 ## ⭐ Show your support
 
 If you like this project, give it a ⭐ on GitHub!
+
