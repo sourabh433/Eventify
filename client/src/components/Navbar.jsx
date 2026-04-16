@@ -65,7 +65,7 @@ const Navbar = () => {
                                 >
                                     <FaUserCircle className="text-lg text-sky-500 group-hover:text-white transition-colors duration-300" />
                                     <span className="hidden md:block text-[10px] font-black uppercase tracking-widest">
-                                        {user.name.split(' ')[0]}
+                                       {user?.name?.split(' ')[0] || 'User'}
                                     </span>
                                 </Link>
 
