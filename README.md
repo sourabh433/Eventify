@@ -1,4 +1,4 @@
-# 🎟️ Eventify – Full Stack Event Booking Platform
+# Eventify – Full Stack Event Booking Platform
 
 Eventify is a modern **MERN stack event booking system** with OTP verification, secure authentication, and a smooth user experience. It allows users to explore events, book tickets, and manage bookings, while admins can control events and bookings efficiently.
 
@@ -123,10 +123,6 @@ npm run dev
 
 ## 📸 Screenshots
 
-
-
-
----
 
 ## 🙌 Author
 
