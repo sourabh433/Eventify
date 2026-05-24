@@ -168,7 +168,7 @@ const Login = () => {
                         <p>Admin: admin@eventify.com</p>
                         <p>Password: pass123</p>
                         
-                        <p>user can {" "}
+                        <p>user : {" "}
                             <Link to="/register" className="text-blue-600 font-bold">
                                 Register now
                             </Link>
