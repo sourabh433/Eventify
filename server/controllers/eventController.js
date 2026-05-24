@@ -69,7 +69,7 @@ exports.createEvent = async (req, res) => {
       location,
       category,
       totalSeats,
-      availableSeats: totalSeats, // ✅ IMPORTANT FIX
+      availableSeats: totalSeats,  
       ticketPrice,
       imageUrl, // ✅ FIXED (was image)
       
