@@ -12,10 +12,11 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: [
-    "http://localhost:5173", 
-    "https://eventify-phi-six.vercel.app/"  
-  ],
+  origin: process.env.CLIENT_URL,
+  // origin: [
+  //   "http://localhost:5173", 
+  //   "https://eventify-phi-six.vercel.app/"  
+  // ],
   credentials: true
 }));
 app.use(express.json());
