@@ -6,7 +6,7 @@ Eventify is a modern **MERN stack event booking system** with OTP verification, 
 
 ## 🌐 Live Demo
 
-🔗 https://eventify-ruby.vercel.app
+🔗 https://eventify-phi-six.vercel.app
 
 ---
 
